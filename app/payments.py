@@ -11,7 +11,7 @@ Env:
   FACILITATOR_KEYPAIR path to a JSON keypair to self-facilitate (pays tx fees in SOL, holds no revenue)
   PAYMENT_RPC_URL    RPC for verifying/settling payments (default: network default)
 """
-import json, os, time
+import json, os, re, time
 from solders.keypair import Keypair
 from x402 import x402ResourceServer, x402Facilitator
 from x402.http import HTTPFacilitatorClient
@@ -59,6 +59,10 @@ ROUTES = {
                                   "programs used (Jupiter, Raydium, Pump.fun...), fees and window net flows. Query: ?limit=10",
                                   ["solana", "wallet", "activity", "pnl", "transactions"], None,
                                   {"counts": {"swap": 3, "send": 1}, "transactions": [{"type": "swap", "sol_change": -0.5, "token_changes": {"<mint>": 1200.0}}]}),
+    "GET /v1/swap/quote": ("Solana swap quote (Jupiter routing) + output-token rug/safety check in one call: out amount, min out, price impact, route, "
+                           "risk score/flags. Query: inputMint, outputMint, amount (base units), slippageBps. Then POST /v1/swap/build (free) for an unsigned tx.",
+                           ["solana", "swap", "quote", "jupiter", "token-safety", "trading"], None,
+                           {"out_amount": "28691442689", "price_impact_pct": "0", "route": ["Raydium"], "output_token_safety": {"risk_score": 12, "risk_level": "low"}}),
     "GET /v1/launches": ("New Solana token launch feed: latest pump.fun token creations read on-chain (mint, creator, creator SOL spent, dev buy), "
                          "optional ?with_safety=true risk score per token. Query: ?limit=10 (max 20)",
                          ["solana", "new-tokens", "pump.fun", "launches", "sniping", "memecoin"], None,
@@ -73,14 +77,19 @@ EXAMPLE_URLS = {
     "POST /v1/tx/preflight": "/v1/tx/preflight",
     "GET /v1/activity/:address": "/v1/activity/J41TaA2hn4YpASarwJK3oByxrKkpQDRVWaNyNCFV6o3d",
     "GET /v1/launches": "/v1/launches?limit=10",
+    "GET /v1/swap/quote": "/v1/swap/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&amount=100000000",
 }
+
+QUERY_EX = {"GET /v1/swap/quote": {"inputMint": "So11111111111111111111111111111111111111112", "outputMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": 100000000}}
+QUERY_SCHEMA = {"GET /v1/swap/quote": {"properties": {"inputMint": {"type": "string"}, "outputMint": {"type": "string"}, "amount": {"type": "integer"},
+                                                      "slippageBps": {"type": "integer"}}, "required": ["inputMint", "outputMint", "amount"]}}
 
 def build_routes(cfg):
     out = {}
     for key, (desc, tags, body_example, out_example) in ROUTES.items():
         pname = key.split(":")[-1] if ":" in key else None
         if not pname and not body_example:  # query-only route
-            ext = declare_discovery_extension(input={"limit": 10}, input_schema={"properties": {"limit": {"type": "integer"}, "with_safety": {"type": "boolean"}}},
+            ext = declare_discovery_extension(input=QUERY_EX.get(key, {"limit": 10}), input_schema=QUERY_SCHEMA.get(key, {"properties": {"limit": {"type": "integer"}, "with_safety": {"type": "boolean"}}}),
                                               output=OutputConfig(example=out_example))
         else:
           ext = declare_discovery_extension(
@@ -158,12 +167,15 @@ def install(app):
         if app.openapi_schema: return app.openapi_schema
         schema = orig_openapi()
         schema["info"]["title"] = "Solana Agent Toolbox (x402)"
-        schema["info"]["description"] = ("Pay-per-call Solana tools for AI agents: token safety, transaction-error explainer, wallet snapshot. "
+        schema["info"]["description"] = ("Pay-per-call Solana tools for AI agents: token safety, tx preflight/simulation, error explainer, wallet snapshot & activity, new-launch feed, swap quote with safety check (free swap tx builder). "
                                          f"${usd} USDC per call on Solana mainnet via x402. Informational only, not financial advice.")
         schema["servers"] = [{"url": base}]
         for path, ops in schema["paths"].items():
             if not path.startswith("/v1/"): continue
-            for op in ops.values():
+            for meth, op in ops.items():
+                key = f"{meth.upper()} " + re.sub(r"\{(\w+)\}", r":\1", path)
+                if key not in ROUTES:   # free route (e.g. /v1/swap/build earns via swap fee)
+                    op["security"] = []; continue
                 op["x-payment-info"] = {"protocols": ["x402"], "price": {"mode": "fixed", "currency": "USD", "amount": usd},
                                         "network": cfg["network"], "asset": cfg["asset"], "payTo": cfg["pay_to"]}
                 op.setdefault("responses", {})["402"] = {"description": "Payment Required (x402 v2; see PAYMENT-REQUIRED header)"}

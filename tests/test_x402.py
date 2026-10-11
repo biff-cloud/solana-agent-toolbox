@@ -15,7 +15,10 @@ for path in ["/v1/token/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "/v1/wall
     req = json.loads(base64.b64decode(r.headers["payment-required"]))
     a = req["accepts"][0]
     print(json.dumps(a))
-d = c.get("/.well-known/x402").json(); assert len(d["resources"]) == 7
+d = c.get("/.well-known/x402").json(); assert len(d["resources"]) == 8
+assert c.get("/v1/swap/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&amount=1000").status_code == 402
+assert c.post("/v1/swap/build", json={"user": "bad!"}).status_code == 400  # free route, no 402
+assert c.app.openapi()["paths"]["/v1/swap/build"]["post"]["security"] == []
 for m_, p_ in (("post", "/v1/tx/preflight"), ("get", "/v1/activity/J41TaA2hn4YpASarwJK3oByxrKkpQDRVWaNyNCFV6o3d"), ("get", "/v1/launches?limit=3")):
     r = getattr(c, m_)(p_, **({"json": {"transaction": "AA=="}} if m_ == "post" else {})); assert r.status_code == 402, (p_, r.status_code)
 '''

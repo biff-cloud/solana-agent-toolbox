@@ -75,6 +75,17 @@ async def new_token_launches(limit: int = 10, with_safety: bool = False) -> dict
     """Latest pump.fun token launches read on-chain (mint, creator, dev buy, creator SOL spent); optional safety score each."""
     return await _call("GET", f"/v1/launches?limit={limit}&with_safety={str(with_safety).lower()}")
 
+@server.tool()
+async def swap_quote(input_mint: str, output_mint: str, amount: int, slippage_bps: int = 50) -> dict:
+    """Jupiter-routed Solana swap quote plus a rug/safety check of the output token (amount in base units)."""
+    return await _call("GET", f"/v1/swap/quote?inputMint={input_mint}&outputMint={output_mint}&amount={amount}&slippageBps={slippage_bps}")
+
+@server.tool()
+async def swap_build(user: str, input_mint: str, output_mint: str, amount: int, slippage_bps: int = 50) -> dict:
+    """Build an unsigned Solana swap transaction (free; includes a 0.5% integrator fee on SOL/USDC pairs) for `user` to sign."""
+    return await _call("POST", "/v1/swap/build", {"user": user, "inputMint": input_mint, "outputMint": output_mint,
+                                                   "amount": amount, "slippageBps": slippage_bps})
+
 def main():
     server.run()
 

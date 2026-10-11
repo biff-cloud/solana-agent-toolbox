@@ -200,6 +200,7 @@ async def wallet(address: str, limit: int = 25):
             "note": "Balances are raw token amounts (no USD pricing, no third-party data)"}
 
 from app import extra  # noqa: E402,F401  (new paid endpoints)
+from app import swap  # noqa: E402,F401
 
 # ---------------- x402 payments (must be imported last) ----------------
 from app import payments  # noqa: E402,F401
