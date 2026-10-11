@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: solana-agent-toolbox
+    runtime: docker
+    plan: free            # free sleeps when idle (slow first call); starter is paid, ask Dan first
+    healthCheckPath: /health
+    envVars:
+      - key: SOLANA_RPC_URL          # Helius key: set in Render dashboard as a secret, never in git
+        sync: false
+      - key: PAY_TO_ADDRESS
+        value: J41TaA2hn4YpASarwJK3oByxrKkpQDRVWaNyNCFV6o3d
+      - key: X402_NETWORK
+        value: solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp
+      - key: FACILITATOR_URL
+        value: https://facilitator.payai.network
+      - key: PRICE_ATOMIC
+        value: "5000"
+      - key: CACHE_TTL_SECONDS
+        value: "120"

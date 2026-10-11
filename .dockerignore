@@ -1,0 +1,6 @@
+.venv
+__pycache__
+tests
+.env
+devnet
+E2E_EVIDENCE.txt

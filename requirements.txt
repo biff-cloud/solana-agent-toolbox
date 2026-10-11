@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+httpx
+x402[svm,fastapi,httpx,extensions]==2.25.0
+solders
+solana<0.40

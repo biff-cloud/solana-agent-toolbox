@@ -1,0 +1,49 @@
+{
+ "unpaid GET /v1/token/8LmSY1PrwT7umByWzqKr": 402,
+ "unpaid GET /v1/wallet/ExbpmnK6DMLYUp5TbYA": 402,
+ "unpaid GET /v1/tx/657kX6ydxgFGyYASwhJxGwv": 402,
+ "unpaid POST /v1/tx/simulate": 402,
+ "paid GET /v1/token/8LmSY1PrwT7umByWzqKr": {
+  "status": 200,
+  "settlement": {
+   "success": true,
+   "payer": "ExbpmnK6DMLYUp5TbYAWDv1oeAzwToESR4J1JrN5oXAP",
+   "transaction": "56uFi4CkDYpVBPcBFQvX9xZ3AbP3h1n27NxJHXiPkfxdyYrY1qoHB6gfCCetXyZqxxSQU4LxecDgLtt5kySiK7p4",
+   "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+  },
+  "summary": "high"
+ },
+ "paid GET /v1/wallet/ExbpmnK6DMLYUp5TbYA": {
+  "status": 200,
+  "settlement": {
+   "success": true,
+   "payer": "ExbpmnK6DMLYUp5TbYAWDv1oeAzwToESR4J1JrN5oXAP",
+   "transaction": "5ez5DNSYr9KazBjm3Jr5Fm5WNYyDo7LRCdYuCTJzTikDa3rLyYkH98E9eJDgsowX241nSeuviBfuzyskkfvkuXDp",
+   "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+  },
+  "summary": 1
+ },
+ "paid GET /v1/tx/657kX6ydxgFGyYASwhJxGwv": {
+  "status": 200,
+  "settlement": {
+   "success": true,
+   "payer": "ExbpmnK6DMLYUp5TbYAWDv1oeAzwToESR4J1JrN5oXAP",
+   "transaction": "25p6vK3AYTnyrUyur9xFMHX4PzCxXkR7DyFUKZ3J4DTRwXQVQf1YPeoV8NcDx2dQ4z82tKwqnD3Zx6j9q34GjeTM",
+   "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+  },
+  "summary": "Instruction #0 (SPL Token) failed: Insufficient token funds"
+ },
+ "paid POST /v1/tx/simulate": {
+  "status": 200,
+  "settlement": {
+   "success": true,
+   "payer": "ExbpmnK6DMLYUp5TbYAWDv1oeAzwToESR4J1JrN5oXAP",
+   "transaction": "3eD2tcmbvfNNjbHpJ3rxrcKgqpMDeCkPHGU8ksMyuG5wCbq6eSPucZwjeqWcwkvH72hiH29g6bpndikfVS3hYa3J",
+   "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+  },
+  "summary": "Instruction #0 (SPL Token) failed: Insufficient token funds"
+ },
+ "payTo_received_atomic": 20000,
+ "expected_atomic": 20000
+}
+E2E OK

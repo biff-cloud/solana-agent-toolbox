@@ -1,0 +1,253 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "Solana Agent Toolbox (x402)",
+  "description": "Pay-per-call (x402, USDC on Solana, $0.005/call) Solana tools for AI agents: token safety, tx-error explainer, wallet snapshot. Unpaid calls to /v1/* return HTTP 402 with x402 v2 payment requirements.",
+  "version": "1.0.0"
+ },
+ "paths": {
+  "/health": {
+   "get": {
+    "summary": "Health",
+    "operationId": "health_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/token/{mint}": {
+   "get": {
+    "summary": "Token",
+    "operationId": "token_v1_token__mint__get",
+    "parameters": [
+     {
+      "name": "mint",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Mint"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tx/simulate": {
+   "post": {
+    "summary": "Tx Simulate",
+    "operationId": "tx_simulate_v1_tx_simulate_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TxIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/tx/{signature}": {
+   "get": {
+    "summary": "Tx Explain",
+    "operationId": "tx_explain_v1_tx__signature__get",
+    "parameters": [
+     {
+      "name": "signature",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Signature"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/v1/wallet/{address}": {
+   "get": {
+    "summary": "Wallet",
+    "operationId": "wallet_v1_wallet__address__get",
+    "parameters": [
+     {
+      "name": "address",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Address"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 25,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "TxIn": {
+    "properties": {
+     "transaction": {
+      "type": "string",
+      "title": "Transaction"
+     }
+    },
+    "type": "object",
+    "required": [
+     "transaction"
+    ],
+    "title": "TxIn"
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   }
+  }
+ }
+}
