@@ -1,0 +1,14 @@
+# Solana Agent Toolbox
+
+> Read-only Solana tools for AI agents, paid per call ($0.005 USDC on Solana mainnet) via x402 v2. No accounts, no API keys.
+> Base URL: https://solana-agent-toolbox.onrender.com. Unpaid requests return HTTP 402 with a PAYMENT-REQUIRED header.
+
+- GET /v1/token/{mint}: token risk score, mint/freeze authority, Token-2022 traps, holder concentration, DEX pool share
+- GET /v1/tx/{signature}: why a transaction failed, plus a suggested fix
+- POST /v1/tx/simulate, POST /v1/tx/preflight: simulate before sending or signing; drainer warnings
+- GET /v1/wallet/{address}, GET /v1/activity/{address}: wallet snapshot and decoded activity
+- GET /v1/launches: new pump.fun launches, optional safety score
+- Free: /openapi.json (x-payment-info), /.well-known/x402, /health
+- MCP server and examples: https://github.com/biff-cloud/solana-agent-toolbox
+
+Informational only, not financial advice.

@@ -1,5 +1,7 @@
 # Solana Agent Toolbox: x402 pay-per-call (USDC on Solana)
 
+Live: https://solana-agent-toolbox.onrender.com · Also see [x402 Health](https://github.com/biff-cloud/x402-health) (check any x402 endpoint before paying) · [All services](https://biff-cloud.github.io)
+
 > **Disclaimer:** All output is informational only and is **not financial, investment or legal advice**. Risk scores are heuristics computed from public on-chain data and can be wrong; a "low" score does not mean a token is safe. Use at your own risk.
 
 Read-only Solana tools for AI agents. Every paid call costs **$0.005 USDC** (configurable) and is paid with
@@ -25,10 +27,55 @@ All data comes from raw Solana RPC. No RugCheck/DexScreener/GeckoTerminal data, 
 Bazaar discovery metadata (x402 `bazaar` extension: description, tags, input/output examples) is attached to every
 paid route, so x402 facilitators that index Bazaar can list it automatically.
 
+## Quick start for agents
+
+**1. See the price (free):**
+```bash
+curl -i "https://solana-agent-toolbox.onrender.com/v1/token/JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN"   # HTTP 402 + PAYMENT-REQUIRED header (base64 JSON: network, amount, payTo)
+```
+
+**2. Pay and call, TypeScript** (`npm i @x402/fetch @x402/svm @solana/kit @scure/base`):
+```ts
+import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
+import { ExactSvmScheme } from "@x402/svm/exact/client";
+import { createKeyPairSignerFromBytes } from "@solana/kit";
+import { base58 } from "@scure/base";
+
+const signer = await createKeyPairSignerFromBytes(base58.decode(process.env.SVM_PRIVATE_KEY!)); // small dedicated wallet with a little USDC
+const client = new x402Client();
+client.register("solana:*", new ExactSvmScheme(signer));
+const pay = wrapFetchWithPayment(fetch, client);
+console.log(await (await pay("https://solana-agent-toolbox.onrender.com/v1/token/JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN")).json());
+```
+
+**3. Pay and call, Python** (`pip install "x402[svm,httpx]"`):
+```python
+import asyncio, os
+from x402 import x402Client
+from x402.http.clients import x402HttpxClient
+from x402.mechanisms.svm.exact import register_exact_svm_client
+from x402.mechanisms.svm.signers import KeypairSigner
+
+c = x402Client()
+register_exact_svm_client(c, KeypairSigner.from_base58(os.environ["SOLANA_PRIVATE_KEY"]))
+async def main():
+    async with x402HttpxClient(c, timeout=90) as h:
+        print((await h.get("https://solana-agent-toolbox.onrender.com/v1/token/JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN")).json())
+asyncio.run(main())
+```
+
+**4. MCP (Claude Desktop `claude_desktop_config.json`, Cursor `~/.cursor/mcp.json`):**
+```json
+{"mcpServers": {"solana-agent-toolbox": {"command": "uvx",
+  "args": ["--from", "git+https://github.com/biff-cloud/solana-agent-toolbox", "solana-agent-toolbox-mcp"],
+  "env": {"SOLANA_PRIVATE_KEY": "<base58 key of a SMALL dedicated wallet>", "MAX_PRICE_ATOMIC": "10000"}}}}
+```
+Payments are USDC on Solana mainnet. The facilitator (PayAI) pays the SOL fees, so the wallet needs only a few cents of USDC. Use a dedicated low-balance wallet, never your main one.
+
 ## Config (env)
 | Var | Default | Notes |
 |---|---|---|
-| `PAY_TO_ADDRESS` | throwaway devnet address | **Dan's receive-only Solana address** for mainnet |
+| `PAY_TO_ADDRESS` | throwaway devnet address | receive-only Solana address for mainnet |
 | `X402_NETWORK` | `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1` (devnet) | mainnet: `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp` |
 | `PAY_ASSET` | USDC of the network | |
 | `PRICE_ATOMIC` | `5000` | = $0.005 (USDC has 6 decimals) |
