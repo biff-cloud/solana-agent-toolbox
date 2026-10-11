@@ -1,8 +1,11 @@
 name: keepalive
-# Pings the free Render instance so agents don't hit a ~1 min cold start. Free endpoints only (no payment).
+# Render free = 750 instance-hours/month for the WHOLE workspace, shared by solana-agent-toolbox and x402-health.
+# Each service is kept warm only 14:00-23:59 UTC (17:00-02:59 Bucharest, US+EU overlap): ~10.25 h/day x 31 = ~318 h/month,
+# so ~636 h for both, leaving ~110 h for wake-ups from real traffic outside the window (free instances sleep after 15 min idle).
+# Free endpoint only (no payment). Change both repos' workflows together.
 on:
   schedule:
-    - cron: "*/12 * * * *"
+    - cron: "*/12 14-23 * * *"
   workflow_dispatch:
 jobs:
   ping:
