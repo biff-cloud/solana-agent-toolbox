@@ -29,3 +29,15 @@ def test_concentration_mocked(monkeypatch):
     r = client.get(f"/v1/token/{M}").json()
     assert r["concentration"]["top1_pct"] == 30.0 and r["liquidity"]["pools"][0]["venue"] == "Raydium AMM v4"
     assert "TOP_HOLDER_GT_20PCT" in [f["code"] for f in r["flags"]]
+
+
+def test_preflight_bad_tx():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    assert TestClient(app).post("/v1/tx/preflight", json={"transaction": "abc"}).status_code == 400
+
+
+def test_activity_bad_address():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    assert TestClient(app).get("/v1/activity/not!valid").status_code == 400

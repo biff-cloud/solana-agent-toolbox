@@ -59,6 +59,22 @@ async def wallet_snapshot(address: str) -> dict:
     """Solana wallet snapshot: SOL balance, token holdings, frozen/closable accounts, recent activity."""
     return await _call("GET", f"/v1/wallet/{address}")
 
+@server.tool()
+async def tx_preflight(transaction_base64: str, owner: str | None = None) -> dict:
+    """Check a Solana transaction BEFORE signing: simulated SOL/token balance changes for the owner, drainer warnings
+    (token approve/delegate, set-authority, system assign), unknown programs, and decoded error if it would fail."""
+    return await _call("POST", "/v1/tx/preflight", {"transaction": transaction_base64, "owner": owner})
+
+@server.tool()
+async def wallet_activity(address: str, limit: int = 10) -> dict:
+    """Recent Solana wallet transactions decoded as swap/send/receive with SOL and token balance changes and net flows."""
+    return await _call("GET", f"/v1/activity/{address}?limit={limit}")
+
+@server.tool()
+async def new_token_launches(limit: int = 10, with_safety: bool = False) -> dict:
+    """Latest pump.fun token launches read on-chain (mint, creator, dev buy, creator SOL spent); optional safety score each."""
+    return await _call("GET", f"/v1/launches?limit={limit}&with_safety={str(with_safety).lower()}")
+
 def main():
     server.run()
 

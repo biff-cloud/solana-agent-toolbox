@@ -51,6 +51,18 @@ ROUTES = {
     "GET /v1/wallet/:address": ("Solana wallet snapshot: SOL, token holdings, frozen/closable accounts, recent activity",
                          ["solana", "wallet", "portfolio"], None,
                          {"sol": 1.2, "tokens": [], "empty_accounts_closable": 3}),
+    "POST /v1/tx/preflight": ("Solana transaction preflight before signing: simulates a base64 tx and returns the owner's SOL/token balance changes, "
+                              "drainer warnings (token approve/delegate, set-authority, system assign), unknown programs and decoded errors. Wallet-safety check for agents.",
+                              ["solana", "preflight", "simulate", "wallet-safety", "drainer-detection"], {"transaction": "<base64 tx>", "owner": "<optional wallet>"},
+                              {"would_succeed": True, "sol_change": -0.01, "token_changes": [{"mint": "EPjF...", "change": 25.0}], "warnings": []}),
+    "GET /v1/activity/:address": ("Solana wallet activity: last 1-25 transactions decoded into swap/send/receive with per-tx SOL and token balance changes, "
+                                  "programs used (Jupiter, Raydium, Pump.fun...), fees and window net flows. Query: ?limit=10",
+                                  ["solana", "wallet", "activity", "pnl", "transactions"], None,
+                                  {"counts": {"swap": 3, "send": 1}, "transactions": [{"type": "swap", "sol_change": -0.5, "token_changes": {"<mint>": 1200.0}}]}),
+    "GET /v1/launches": ("New Solana token launch feed: latest pump.fun token creations read on-chain (mint, creator, creator SOL spent, dev buy), "
+                         "optional ?with_safety=true risk score per token. Query: ?limit=10 (max 20)",
+                         ["solana", "new-tokens", "pump.fun", "launches", "sniping", "memecoin"], None,
+                         {"launches": [{"mint": "...pump", "creator": "...", "creator_sol_spent": 0.35, "safety": {"risk_score": 10, "risk_level": "low"}}]}),
 }
 
 EXAMPLE_URLS = {
@@ -58,17 +70,24 @@ EXAMPLE_URLS = {
     "GET /v1/tx/:signature": "/v1/tx/5674E4Gkoj3Z3nLjMYNr7GrBHpefbge39FhWTZnMod1outJwwuduuX9r6gzh2YvUbHmkcsrC2a2m2yRcfVmX6f7s",
     "POST /v1/tx/simulate": "/v1/tx/simulate",
     "GET /v1/wallet/:address": "/v1/wallet/J41TaA2hn4YpASarwJK3oByxrKkpQDRVWaNyNCFV6o3d",
+    "POST /v1/tx/preflight": "/v1/tx/preflight",
+    "GET /v1/activity/:address": "/v1/activity/J41TaA2hn4YpASarwJK3oByxrKkpQDRVWaNyNCFV6o3d",
+    "GET /v1/launches": "/v1/launches?limit=10",
 }
 
 def build_routes(cfg):
     out = {}
     for key, (desc, tags, body_example, out_example) in ROUTES.items():
         pname = key.split(":")[-1] if ":" in key else None
-        ext = declare_discovery_extension(
+        if not pname and not body_example:  # query-only route
+            ext = declare_discovery_extension(input={"limit": 10}, input_schema={"properties": {"limit": {"type": "integer"}, "with_safety": {"type": "boolean"}}},
+                                              output=OutputConfig(example=out_example))
+        else:
+          ext = declare_discovery_extension(
             input=body_example if body_example else {pname: EXAMPLE_URLS[key].rsplit("/", 1)[-1]},
             body_type="json" if key.startswith("POST") else None,
             path_params_schema={"type": "object", "properties": {pname: {"type": "string", "description": f"base58 {pname}"}}, "required": [pname]} if pname else None,
-            input_schema={"properties": {"transaction": {"type": "string", "description": "base64 serialized transaction"}}, "required": ["transaction"]} if body_example else {"properties": {pname: {"type": "string"}}, "required": [pname]},
+            input_schema={"properties": {"transaction": {"type": "string", "description": "base64 serialized transaction"}, "owner": {"type": "string"}}, "required": ["transaction"]} if body_example else {"properties": {pname: {"type": "string"}}, "required": [pname]},
             output=OutputConfig(example=out_example))
         out[key] = RouteConfig(
             accepts=PaymentOption(scheme="exact", pay_to=cfg["pay_to"], network=cfg["network"],

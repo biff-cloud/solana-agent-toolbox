@@ -199,6 +199,8 @@ async def wallet(address: str, limit: int = 25):
             "recent_activity": [{"signature": s["signature"], "block_time": s.get("blockTime"), "failed": s.get("err") is not None} for s in sigs],
             "note": "Balances are raw token amounts (no USD pricing, no third-party data)"}
 
+from app import extra  # noqa: E402,F401  (new paid endpoints)
+
 # ---------------- x402 payments (must be imported last) ----------------
 from app import payments  # noqa: E402,F401
 payments.install(app)

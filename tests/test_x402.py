@@ -15,7 +15,9 @@ for path in ["/v1/token/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "/v1/wall
     req = json.loads(base64.b64decode(r.headers["payment-required"]))
     a = req["accepts"][0]
     print(json.dumps(a))
-d = c.get("/.well-known/x402").json(); assert len(d["resources"]) == 4
+d = c.get("/.well-known/x402").json(); assert len(d["resources"]) == 7
+for m_, p_ in (("post", "/v1/tx/preflight"), ("get", "/v1/activity/J41TaA2hn4YpASarwJK3oByxrKkpQDRVWaNyNCFV6o3d"), ("get", "/v1/launches?limit=3")):
+    r = getattr(c, m_)(p_, **({"json": {"transaction": "AA=="}} if m_ == "post" else {})); assert r.status_code == 402, (p_, r.status_code)
 '''
     env = {**os.environ, "X402_ENABLED": "1", "FACILITATOR_KEYPAIR": str(kp), "PYTHONPATH": "."}
     out = subprocess.run([sys.executable, "-W", "ignore", "-c", code], env=env, capture_output=True, text=True)
@@ -23,3 +25,4 @@ d = c.get("/.well-known/x402").json(); assert len(d["resources"]) == 4
     a = json.loads(out.stdout.strip().splitlines()[-1])
     assert a["network"] == "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1" and a["asset"] == "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
     assert a["amount"] == "5000" and a["payTo"] == "9ZPaDj2Qcg4gXXEhArSNmtdHHSrXPWKmsDecnt94D44V"
+

@@ -13,6 +13,9 @@ straight in that wallet. No accounts, no API keys.
 | `GET /v1/tx/{signature}` | Why a landed tx failed: decoded error, failing instruction/program, suggested fix, logs |
 | `POST /v1/tx/simulate` `{"transaction": "<base64>"}` | Simulate before sending and explain the failure |
 | `GET /v1/wallet/{address}` | SOL, token holdings, frozen/closable accounts, recent activity |
+| `POST /v1/tx/preflight` | Simulate before signing: owner SOL/token balance changes, drainer warnings, unknown programs |
+| `GET /v1/activity/{address}?limit=10` | Decoded recent txs (swap/send/receive), per-tx balance changes, net flows |
+| `GET /v1/launches?limit=10&with_safety=true` | New pump.fun launches from chain (mint, creator, dev buy) + optional risk score |
 | `GET /health`, `GET /.well-known/x402`, `GET /openapi.json` | Free: health, x402 discovery (x402scan format), OpenAPI with `x-payment-info` |
 | `GET /stats` | Free: paid-call counters since restart + on-chain USDC payments ($0.005-sized) to payTo |
 

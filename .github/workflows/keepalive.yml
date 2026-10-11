@@ -2,7 +2,7 @@ name: keepalive
 # Pings the free Render instance so agents don't hit a ~1 min cold start. Free endpoints only (no payment).
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/12 * * * *"
   workflow_dispatch:
 jobs:
   ping:
