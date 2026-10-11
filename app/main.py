@@ -166,7 +166,7 @@ async def tx_explain(signature: str):
     if not re.match(r"^[1-9A-HJ-NP-Za-km-z]{64,90}$", signature): raise HTTPException(400, "invalid signature")
     async with httpx.AsyncClient(timeout=30) as c:
         try:
-            t = await rpc(c, "getTransaction", [signature, {"encoding": "json", "maxSupportedTransactionVersion": 0, "commitment": "confirmed"}])
+            t = await rpc(c, "getTransaction", [signature, {"encoding": "json", "maxSupportedTransactionVersion": 1, "commitment": "confirmed"}])
         except RpcError as e:
             raise HTTPException(502, f"upstream RPC error: {e}")
     if not t: raise HTTPException(404, "transaction not found")

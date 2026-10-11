@@ -11,7 +11,7 @@ Env:
   FACILITATOR_KEYPAIR path to a JSON keypair to self-facilitate (pays tx fees in SOL, holds no revenue)
   PAYMENT_RPC_URL    RPC for verifying/settling payments (default: network default)
 """
-import json, os
+import json, os, time
 from solders.keypair import Keypair
 from x402 import x402ResourceServer, x402Facilitator
 from x402.http import HTTPFacilitatorClient
@@ -53,12 +53,22 @@ ROUTES = {
                          {"sol": 1.2, "tokens": [], "empty_accounts_closable": 3}),
 }
 
+EXAMPLE_URLS = {
+    "GET /v1/token/:mint": "/v1/token/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+    "GET /v1/tx/:signature": "/v1/tx/5674E4Gkoj3Z3nLjMYNr7GrBHpefbge39FhWTZnMod1outJwwuduuX9r6gzh2YvUbHmkcsrC2a2m2yRcfVmX6f7s",
+    "POST /v1/tx/simulate": "/v1/tx/simulate",
+    "GET /v1/wallet/:address": "/v1/wallet/J41TaA2hn4YpASarwJK3oByxrKkpQDRVWaNyNCFV6o3d",
+}
+
 def build_routes(cfg):
     out = {}
     for key, (desc, tags, body_example, out_example) in ROUTES.items():
+        pname = key.split(":")[-1] if ":" in key else None
         ext = declare_discovery_extension(
-            input=body_example, body_type="json" if key.startswith("POST") else None,
-            input_schema={"properties": {"transaction": {"type": "string"}}, "required": ["transaction"]} if body_example else None,
+            input=body_example if body_example else {pname: EXAMPLE_URLS[key].rsplit("/", 1)[-1]},
+            body_type="json" if key.startswith("POST") else None,
+            path_params_schema={"type": "object", "properties": {pname: {"type": "string", "description": f"base58 {pname}"}}, "required": [pname]} if pname else None,
+            input_schema={"properties": {"transaction": {"type": "string", "description": "base64 serialized transaction"}}, "required": ["transaction"]} if body_example else {"properties": {pname: {"type": "string"}}, "required": [pname]},
             output=OutputConfig(example=out_example))
         out[key] = RouteConfig(
             accepts=PaymentOption(scheme="exact", pay_to=cfg["pay_to"], network=cfg["network"],
@@ -85,12 +95,59 @@ def install(app):
     if cfg["network"] == SOLANA_MAINNET_CAIP2 and not os.getenv("PAY_TO_ADDRESS"):
         raise RuntimeError("mainnet requires an explicit PAY_TO_ADDRESS (refusing to use the throwaway devnet default)")
     mw = payment_middleware(build_routes(cfg), build_server(cfg))
+    counters = {"since": int(time.time()), "paid_calls": 0, "unpaid_402": 0, "by_route": {}}
     @app.middleware("http")
     async def x402_mw(request, call_next):
-        return await mw(request, call_next)
+        resp = await mw(request, call_next)
+        if request.url.path.startswith("/v1/"):
+            if resp.status_code == 402: counters["unpaid_402"] += 1
+            elif resp.headers.get("payment-response"):
+                counters["paid_calls"] += 1
+                r = "/".join(request.url.path.split("/")[:3]); counters["by_route"][r] = counters["by_route"].get(r, 0) + 1
+        return resp
+
+    stats_cache = {}
+    @app.get("/stats")
+    async def stats():
+        """Free: paid-call counters since last restart + on-chain USDC inflows to payTo (cached 10 min)."""
+        from app.revenue import inflows
+        import asyncio
+        now = time.time()
+        if not stats_cache or now - stats_cache["t"] > 600:
+            try:
+                data = await asyncio.to_thread(inflows, cfg["pay_to"], cfg["asset"], os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com"), 50, int(cfg["price"]), int(os.getenv("REVENUE_SINCE", "1791752400")))
+            except Exception as e:
+                data = {"error": f"on-chain lookup failed: {e}"}
+            stats_cache.update(t=now, data=data)
+        return {"process": counters, "onchain": stats_cache["data"]}
+
+    base = os.getenv("PUBLIC_BASE_URL", "https://solana-agent-toolbox.onrender.com").rstrip("/")
 
     @app.get("/.well-known/x402")
     async def discovery():
-        return {"x402Version": 2, "service": "Solana Agent Toolbox", "network": cfg["network"], "payTo": cfg["pay_to"],
-                "asset": cfg["asset"], "priceAtomic": cfg["price"],
-                "resources": [{"route": k, "description": v[0], "tags": v[1]} for k, v in ROUTES.items()]}
+        # x402scan fan-out format ("version" + concrete resource URLs) plus richer route metadata
+        return {"version": 1, "x402Version": 2, "service": "Solana Agent Toolbox",
+                "resources": [base + u for u in EXAMPLE_URLS.values()],
+                "network": cfg["network"], "payTo": cfg["pay_to"], "asset": cfg["asset"], "priceAtomic": cfg["price"],
+                "routes": [{"route": k, "example": base + EXAMPLE_URLS[k], "description": v[0], "tags": v[1]} for k, v in ROUTES.items()],
+                "instructions": "Each call costs $0.005 USDC on Solana mainnet via x402 v2 (exact). Unpaid requests return 402 with a PAYMENT-REQUIRED header."}
+
+    # x402scan OpenAPI-first discovery: annotate paid operations
+    usd = f"{int(cfg['price']) / 1e6:g}"
+    orig_openapi = app.openapi
+    def openapi_with_payment():
+        if app.openapi_schema: return app.openapi_schema
+        schema = orig_openapi()
+        schema["info"]["title"] = "Solana Agent Toolbox (x402)"
+        schema["info"]["description"] = ("Pay-per-call Solana tools for AI agents: token safety, transaction-error explainer, wallet snapshot. "
+                                         f"${usd} USDC per call on Solana mainnet via x402. Informational only, not financial advice.")
+        schema["servers"] = [{"url": base}]
+        for path, ops in schema["paths"].items():
+            if not path.startswith("/v1/"): continue
+            for op in ops.values():
+                op["x-payment-info"] = {"protocols": ["x402"], "price": {"mode": "fixed", "currency": "USD", "amount": usd},
+                                        "network": cfg["network"], "asset": cfg["asset"], "payTo": cfg["pay_to"]}
+                op.setdefault("responses", {})["402"] = {"description": "Payment Required (x402 v2; see PAYMENT-REQUIRED header)"}
+        app.openapi_schema = schema
+        return schema
+    app.openapi = openapi_with_payment

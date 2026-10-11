@@ -1,7 +1,9 @@
+.venv
 .venv/
 __pycache__/
 .pytest_cache/
 .env
 .env.*
+devnet
 devnet/
 *.keypair.json
