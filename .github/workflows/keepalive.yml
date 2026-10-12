@@ -3,6 +3,7 @@ name: keepalive
 # Each service is kept warm only 14:00-23:59 UTC (17:00-02:59 Bucharest, US+EU overlap): ~10.25 h/day x 31 = ~318 h/month,
 # so ~636 h for both, leaving ~110 h for wake-ups from real traffic outside the window (free instances sleep after 15 min idle).
 # Free endpoint only (no payment). Change both repos' workflows together.
+# Exit 0 on "suspended by its owner" so Actions stay green while the daily routine wakes Dan; still fail on other errors.
 on:
   schedule:
     - cron: "*/12 14-23 * * *"
@@ -12,4 +13,26 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - run: curl -fsS -m 90 https://solana-agent-toolbox.onrender.com/health
+      - name: Ping /health (cold-start retries; soft on suspended)
+        run: |
+          set +e
+          url="https://solana-agent-toolbox.onrender.com/health"
+          for i in 1 2 3 4 5; do
+            body=$(mktemp)
+            code=$(curl -sS -o "$body" -w "%{http_code}" -m 90 "$url" || echo "000")
+            if grep -qi "suspended by its owner" "$body"; then
+              echo "Render reports service SUSPENDED (owner). Resume in the Render dashboard. Daily routine will notify."
+              cat "$body"
+              exit 0
+            fi
+            if [ "$code" = "200" ]; then
+              echo "ok http=$code attempt=$i"
+              head -c 200 "$body"; echo
+              exit 0
+            fi
+            echo "attempt=$i http=$code"
+            head -c 200 "$body"; echo
+            sleep 12
+          done
+          echo "keepalive failed after retries"
+          exit 1
