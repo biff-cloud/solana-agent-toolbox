@@ -3,7 +3,11 @@ import os, pytest
 from fastapi.testclient import TestClient
 from app import main
 client = TestClient(main.app)
-def test_health(): assert client.get("/health").json() == {"status": "ok"}
+def test_health(monkeypatch):
+    monkeypatch.delenv("RENDER_GIT_COMMIT", raising=False)
+    assert client.get("/health").json() == {"status": "ok", "commit": None}
+    monkeypatch.setenv("RENDER_GIT_COMMIT", "abcdef1234567890")
+    assert client.get("/health").json()["commit"] == "abcdef1"
 def test_bad_mint(): assert client.get("/v1/token/not-a-mint!").status_code == 400
 def test_score(): assert main.score([{"severity": "high"}]*2) == (60, "high")
 @pytest.mark.skipif(not os.getenv("LIVE"), reason="live RPC")

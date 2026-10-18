@@ -115,7 +115,7 @@ async def proxy_guard(request: Request, call_next):
     return await call_next(request)
 
 @app.get("/health")
-async def health(): return {"status": "ok"}
+async def health(): return {"status": "ok", "commit": os.getenv("RENDER_GIT_COMMIT", "")[:7] or None}
 
 @app.get("/v1/token/{mint}")
 async def token(mint: str):
