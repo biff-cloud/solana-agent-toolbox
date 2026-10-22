@@ -202,6 +202,18 @@ async def wallet(address: str, limit: int = 25):
 from app import extra  # noqa: E402,F401  (new paid endpoints)
 from app import swap  # noqa: E402,F401
 
+from pathlib import Path as _Path
+from fastapi.responses import PlainTextResponse as _PlainText
+
+_LLMS = _Path(__file__).resolve().parent.parent / "llms.txt"
+
+@app.get("/llms.txt", response_class=_PlainText, include_in_schema=False)
+async def llms_txt():
+    """Free: agent-readable summary, base URL rewritten to PUBLIC_BASE_URL."""
+    base = os.getenv("PUBLIC_BASE_URL", "https://solana-agent-toolbox.onrender.com").rstrip("/")
+    return _LLMS.read_text().replace("https://solana-agent-toolbox.onrender.com", base)
+
+
 # ---------------- x402 payments (must be imported last) ----------------
 from app import payments  # noqa: E402,F401
 payments.install(app)

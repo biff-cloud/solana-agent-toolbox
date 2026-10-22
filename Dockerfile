@@ -3,6 +3,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
+COPY llms.txt ./llms.txt
 ENV PORT=8080
 # No private keys baked in. For self-facilitation mount a fee-payer keypair and set FACILITATOR_KEYPAIR,
 # or set FACILITATOR_URL to a hosted facilitator.
