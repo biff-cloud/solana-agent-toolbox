@@ -214,6 +214,17 @@ async def llms_txt():
     return _LLMS.read_text().replace("https://solana-agent-toolbox.onrender.com", base)
 
 
+from fastapi.responses import JSONResponse as _JSON
+
+@app.get("/.well-known/api-catalog", include_in_schema=False)
+async def api_catalog():
+    """Free: RFC 9727 API catalog (linkset) pointing at OpenAPI, README and /health."""
+    base = os.getenv("PUBLIC_BASE_URL", "https://solana-agent-toolbox.onrender.com").rstrip("/")
+    return _JSON({"linkset": [{"anchor": base,
+        "service-desc": [{"href": f"{base}/openapi.json", "type": "application/vnd.oai.openapi+json"}],
+        "service-doc": [{"href": "https://github.com/biff-cloud/solana-agent-toolbox#readme"}],
+        "status": [{"href": f"{base}/health"}]}]}, media_type="application/linkset+json")
+
 # ---------------- x402 payments (must be imported last) ----------------
 from app import payments  # noqa: E402,F401
 payments.install(app)
