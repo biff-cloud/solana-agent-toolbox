@@ -10,7 +10,7 @@ assert r.status_code == 200, r.status_code
 assert r.headers["content-type"].startswith("text/plain")
 assert "https://tools.example.org" in r.text and "onrender.com" not in r.text, r.text[:300]
 '''
-    env = {**os.environ, "PUBLIC_BASE_URL": "https://tools.example.org/", "PYTHONPATH": "."}
+    env = {**os.environ, "PUBLIC_BASE_URL": "https://tools.example.org/", "X402_ENABLED": "0", "PYTHONPATH": "."}
     out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True)
     assert out.returncode == 0, out.stderr
 
@@ -27,6 +27,18 @@ assert ls["anchor"] == "https://tools.example.org"
 assert ls["service-desc"][0]["href"] == "https://tools.example.org/openapi.json"
 assert ls["status"][0]["href"] == "https://tools.example.org/health"
 '''
-    env = {**os.environ, "PUBLIC_BASE_URL": "https://tools.example.org/", "PYTHONPATH": "."}
+    env = {**os.environ, "PUBLIC_BASE_URL": "https://tools.example.org/", "X402_ENABLED": "0", "PYTHONPATH": "."}
+    out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr
+
+
+def test_api_catalog_link_header():
+    code = r'''
+from fastapi.testclient import TestClient
+from app.main import app
+r = TestClient(app).get("/health")
+assert r.headers["link"] == '</.well-known/api-catalog>; rel="api-catalog"', r.headers
+'''
+    env = {**os.environ, "X402_ENABLED": "0", "PYTHONPATH": "."}
     out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True)
     assert out.returncode == 0, out.stderr

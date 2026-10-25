@@ -112,7 +112,9 @@ async def analyze(mint):
 async def proxy_guard(request: Request, call_next):
     if PROXY_SECRET and request.url.path.startswith("/v1/") and request.headers.get("X-RapidAPI-Proxy-Secret") != PROXY_SECRET:
         return JSONResponse({"detail": "forbidden"}, status_code=403)
-    return await call_next(request)
+    resp = await call_next(request)
+    resp.headers.setdefault("Link", '</.well-known/api-catalog>; rel="api-catalog"')  # RFC 9727 discovery
+    return resp
 
 @app.get("/health")
 async def health(): return {"status": "ok", "commit": os.getenv("RENDER_GIT_COMMIT", "")[:7] or None}
